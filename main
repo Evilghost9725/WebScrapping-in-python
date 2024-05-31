@@ -1,0 +1,55 @@
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+def scrape_wikipedia(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    # For Title
+    title = soup.find('h1', id='firstHeading').text
+
+    # For First Paragraph
+    paragraphs = soup.find_all('p')
+    first_paragraph = paragraphs[0].text if paragraphs else 'No content available'
+
+    # For External Links
+    external_links = []
+    for link in soup.find_all('a', href=True):
+        if 'http' in link['href']:
+            external_links.append(link['href'])
+
+    # For Images
+    images = []
+    for img in soup.find_all('img'):
+        img_url = img['src']
+        if not img_url.startswith('http'):
+            img_url = urljoin(url, img_url)
+        images.append({
+            'src': img_url,
+            'alt': img.get('alt', 'No caption')
+        })
+
+    return {
+        'title': title,
+        'first_paragraph': first_paragraph,
+        'external_links': external_links,
+        'images': images
+    }
+
+def format_output(data):
+    output = f"Title: {data['title']}\n\n"
+    output += f"First Paragraph: {data['first_paragraph']}\n\n"
+    output += "External Links:\n"
+    for link in data['external_links']:
+        output += f"- {link}\n"
+    output += "\nImages:\n"
+    for img in data['images']:
+        output += f"- URL: {img['src']}, Alt: {img['alt']}\n"
+    return output
+
+
+url = input("Enter URL : ")
+data = scrape_wikipedia(url)
+formatted_output = format_output(data)
+print(formatted_output)
